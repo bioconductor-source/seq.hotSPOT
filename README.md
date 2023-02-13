@@ -1,3 +1,4 @@
 # seq.hotSPOT
-# seq.hotSPOT
-# seq.hotSPOT
+# if (!require("BiocManager", quietly = TRUE))
+#    install.packages("BiocManager")
+# BiocManager::install("seq.hotSPOT")

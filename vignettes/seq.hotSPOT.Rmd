@@ -49,7 +49,7 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
   
   5.	All amplicons generated for each hotspot region of interest, are assigned a unique ID and added to the amplicon pool.
   
-![NOTE](C:/Users/sy43548/OneDrive - Roswell Park Comprehensive Cancer Center/Documents/hotSPOT/vignettes/hotSPOT_ampfinder.jpeg)
+![NOTE](W:/seq.hotSPOT/vignettes/hotSPOT_ampfinder.jpeg)
 
 ```{r run amp finder}
 amps <- amp_pool(data, 100, 5000)
@@ -74,7 +74,7 @@ Forward Selection Sequencing Panel Identifier
   6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set           cumulative length.
 
 
-![NOTE](C:/Users/sy43548/OneDrive - Roswell Park Comprehensive Cancer Center/Documents/hotSPOT/vignettes/hotSPOT_fwbin.jpeg)
+![NOTE](W:/seq.hotSPOT/vignettes/hotSPOT_fwbin.jpeg)
 ```{r fw binning}
 fw_bins <- fw_hotspot(amps, data, 100, 5000)
 fw_bins
@@ -118,7 +118,7 @@ Comprehensive Selection Sequencing Panel Identifier (Optimal mutation capture)
     cumulative length.
 
 
-![NOTE](C:/Users/sy43548/OneDrive - Roswell Park Comprehensive Cancer Center/Documents/hotSPOT/vignettes/hotSPOT_combin.jpeg)
+![NOTE](W:/seq.hotSPOT/vignettes/hotSPOT_combin.jpeg)
 
 ```{r com binning}
 com_bins <- com_hotspot(fw_bins, amps, data, 100, 5000, 3)
