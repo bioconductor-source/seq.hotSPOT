@@ -4,14 +4,13 @@
 \alias{amp_pool}
 \title{create amplicon pool}
 \usage{
-amp_pool(data, amp, len)
+amp_pool(data, amp)
 }
 \arguments{
 \item{data}{A dataframe containing the location of each mutation.}
 
 \item{amp}{The length of amplicons in number of base pairs}
 
-\item{len}{The total length of sequencing panel in number of base pairs}
 }
 \value{
 A dataframe containing the genomic coordinates of all potential amplicons
@@ -66,6 +65,6 @@ column names "gene".
 \examples{
 
 load(example.RData)
-amp_pool(data, 100, 5000)
+amp_pool(data, 100)
 
 }

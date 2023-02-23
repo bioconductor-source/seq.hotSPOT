@@ -63,135 +63,111 @@
 #' @examples
 #'
 #' load(example.RData)
-#' amp_pool(data, 100, 5000)
+#' amp_pool(data, 100)
 #'
 
 
-
-amp_pool <- function(data, amp, len){
-    panel_length = len #set panel and amplicon length
-    amp_length = amp
+amp_pool <- function(data, amp){
+  pos <- data$pos
+  pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
+  data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
+  data <- unique(data) #keep only unique positions
+  amplicon_finder <- function(data, chr){
     pos <- data$pos
-    pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
-    data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
-    data <- unique(data) #keep only unique positions
-    amplicon_finder <- function(data, chr){
-        pos <- data$pos
-        keys <- make.keys(data$pos)
-        dict <- hash(keys = keys, values = data$Freq) #create dictionary for mutation locations and mutation frequency
-        make_bins <- sort(unique(pos))
-        bins <- data.frame()
-        while (length(make_bins) > 1){   ## groups all mutations by relative position
-            temp_bins <- make_bins         ## starts with first mutation, checks for next closes mutation
-            i <- 1                         ## mutations are added to the group if they are less than one amplicon length away from neighboring mutation
-            start <- make_bins[1]          ## if mutations are further than one amplicon away, new group is started
-            p_dif <- 1
-            go = "yes"
-            while (go == "yes"){
-                p1 <- temp_bins[i]
-                p_next <- temp_bins[i + 1]
-                i <- i + 1
-                if (i <= length(make_bins)){
-                    p_dif <- p_next - p1
-                }
-                if (i > length(make_bins)){
-                    p_dif = amp_length + 100
-                    go = "no"
-                }
-                if (p_dif > amp_length){
-                    p_next <- p1
-                }
-            }
-            end <- p_next
-            vec <- as.list(start:end)
-            keep <- setdiff(make_bins, vec)
-            make_bins <- keep
-            chr = chr
-            row <- data.frame("lowerbound" = start, "upperbound" = end, "chromosome" = chr)
-            bins <- rbind(bins, row)
-        }
-        if (length(make_bins) == 1){
-            row <- data.frame("lowerbound" = make_bins, "upperbound" = make_bins, "chromosome" = chr)  # all groups are added to dataframe of bins
-            bins <- rbind(bins, row)
-        }
-        mut_locations <- data.frame()
-        possible_bins <- data.frame()
-        for (i in seq_len(nrow(bins))){             ## for each bin, finds amplicons which may optimally cover that region
-            up_mut <- bins$upperbound[[i]]
-            low_mut <- bins$lowerbound[[i]]   # find length of bin
-            vec <- up_mut:low_mut
-            dif <- length(vec) - amp_length
-            if (dif <= 0){                    # if the bin is <= amplicon length, we only need to generate a single amplicon
-                up <- bins$upperbound[[i]]
-                low <- bins$lowerbound[[i]]
-                vec <- up:low
-                mutations <- intersect(vec, pos)    #find all mutations in total bin region
-                mutations_keys <- make.keys(mutations)
-                count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-                mut_all <- c()
-                for (m in seq_len(length(mutations))){
-                    mut_all <- c(mut_all, rep(mutations[[m]], as.vector(values(dict, keys = mutations_keys))[[m]]))
-                }
-                weighted_mid <- round(mean(mut_all))
-                weighted_mid_max <- (ceiling(mean(vec)) + (amp_length/2))        # the single amplicon we choose to cover this bin is weighted based on mutation distribution
-                weighted_mid_min <- (floor(mean(vec)) - (amp_length/2))
-                if (weighted_mid < weighted_mid_min){final_mid <- weighted_mid_min}
-                if (weighted_mid > weighted_mid_max){final_mid <- weighted_mid_max}
-                if (weighted_mid > weighted_mid_min & weighted_mid < weighted_mid_max){final_mid <- weighted_mid}
-                up <- final_mid + ceiling((amp_length - 1) / 2)
-                low <- final_mid - floor((amp_length - 1) / 2)
-                vec <- up:low
-                mutations <- intersect(vec, pos) #find all mutations in total bin region
-                mutations_keys <- make.keys(mutations)
-                count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-                row <- data.frame("lowerbound" = low, "upperbound" = up,
-                              "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x")
-                possible_bins <- rbind(possible_bins, row)
-            }
-            else{                                    # for bins greater than one amplicon length, we generate 5 possible amplicons for each mutation within the bin
-                up_mut <- bins$upperbound[[i]]
-                low_mut <- bins$lowerbound[[i]]
-                vec <- up_mut:low_mut
-                mut_list <- intersect(vec, pos)
-                id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-") # every time a new bin is created, it is assigned a unique id
-                b_list <- list()
-                for (mut in mut_list){                      # creating 5 amplicons per mutation
-                    bin1 <- (mut - amp_length):(mut - 1)
-                    b_list[[1]] <- bin1
-                    bin2 <- (mut - (amp_length - 1)):(mut)
-                    b_list[[2]] <- bin2
-                    bin3 <- (mut + amp_length):(mut + 1)
-                    b_list[[3]] <- bin3
-                    bin4 <- (mut + (amp_length - 1)):(mut)
-                    b_list[[4]] <- bin4
-                    bin5 <- (mut - ceiling(amp_length / 2)):(mut - floor(amp_length / 2))
-                    b_list[[5]] <- bin5
-                    for (b in b_list){
-                        low <- min(b)
-                        up <- max(b)
-                        mutations <- intersect(b, pos)
-                        if (length(mutations > 0)){
-                              mutations_keys <- make.keys(mutations)
-                              count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-                              row <- data.frame("lowerbound" = low, "upperbound" = up,
-                                                "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id)
-                              possible_bins <- rbind(possible_bins, row)
-                        }
-                    }
-                }
-            }
-        }
-        return(possible_bins)       # all amplicons are added to dataframe
+    keys <- make.keys(data$pos)
+    dict <- hash(keys = keys, values = data$Freq) #create dictionary for mutation locations and mutation frequency
+    make_bins <- sort(unique(pos))
+    bins <- data.frame()
+    diffs <- diff(make_bins)
+    large_diffs <- c(1, which(diffs > amp))
+    for (d in seq_along(large_diffs)){
+      row <- data.frame("lowerbound" = make_bins[[large_diffs[[d]]]], "upperbound" = make_bins[[large_diffs[[d]]]], "chromosome" = chr)
+      bins <- rbind(bins, row)
+      gc()
     }
-    chrom_list <- unique(as.list(data$chr)) # list of all chromosomes found in this dataset
-    all_pos_bins <- data.frame()
-    for (chrom in chrom_list) {
-        chromosome <- subset(data, chr == chrom)
-        chromsort <- chromosome[order(chromosome$pos), ] #order df from lowest to highest position
-        chrom_bins <- amplicon_finder(chromsort, chrom) #run through above function
-        all_pos_bins <- rbind(all_pos_bins, chrom_bins) #add all bins together from all chromosomes
+    mut_locations <- data.frame()
+    possible_bins <- data.frame()
+    for (i in seq_len(nrow(bins))){ ## for each bin, finds amplicons which may optimally cover that region
+      up_mut <- bins$upperbound[[i]]
+      low_mut <- bins$lowerbound[[i]]   # find length of bin
+      vec <- up_mut:low_mut
+      dif <- length(vec) - amp
+      if (dif <= 0){                    # if the bin is <= amplicon length, we only need to generate a single amplicon
+        up <- bins$upperbound[[i]]
+        low <- bins$lowerbound[[i]]
+        vec <- up:low
+        mutations <- intersect(vec, pos)    #find all mutations in total bin region
+        mutations_keys <- make.keys(mutations)
+        count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+        mut_all <- c()
+        for (m in seq_len(length(mutations))){
+          mut_all <- c(mut_all, rep(mutations[[m]], as.vector(values(dict, keys = mutations_keys))[[m]]))
+        }
+        weighted_mid <- round(mean(mut_all))
+        weighted_mid_max <- (ceiling(mean(vec)) + (amp/2))        # the single amplicon we choose to cover this bin is weighted based on mutation distribution
+        weighted_mid_min <- (floor(mean(vec)) - (amp/2))
+        if (weighted_mid < weighted_mid_min){final_mid <- weighted_mid_min}
+        if (weighted_mid > weighted_mid_max){final_mid <- weighted_mid_max}
+        if (weighted_mid > weighted_mid_min & weighted_mid < weighted_mid_max){final_mid <- weighted_mid}
+        up <- final_mid + ceiling((amp - 1) / 2)
+        low <- final_mid - floor((amp - 1) / 2)
+        vec <- up:low
+        mutations <- intersect(vec, pos) #find all mutations in total bin region
+        mutations_keys <- make.keys(mutations)
+        count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+        row <- data.frame("lowerbound" = low, "upperbound" = up,
+                          "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x")
+        possible_bins <- rbind(possible_bins, row)
+      }
+      else{                                    # for bins greater than one amplicon length, we generate 5 possible amplicons for each mutation within the bin
+        up_mut <- bins$upperbound[[i]]
+        low_mut <- bins$lowerbound[[i]]
+        vec <- up_mut:low_mut
+        mut_list <- intersect(vec, pos)
+        id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-") # every time a new bin is created, it is assigned a unique id
+        b_list <- list()
+        for (mut in mut_list){                      # creating 5 amplicons per mutation
+          bin1 <- (mut - amp):(mut - 1)
+          b_list[[1]] <- bin1
+          bin2 <- (mut - (amp - 1)):(mut)
+          b_list[[2]] <- bin2
+          bin3 <- (mut + amp):(mut + 1)
+          b_list[[3]] <- bin3
+          bin4 <- (mut + (amp - 1)):(mut)
+          b_list[[4]] <- bin4
+          bin5 <- (mut - ceiling(amp / 2)):(mut - floor(amp / 2))
+          b_list[[5]] <- bin5
+          for (b in b_list){
+            low <- min(b)
+            up <- max(b)
+            mutations <- intersect(b, pos)
+            if (length(mutations > 0)){
+              mutations_keys <- make.keys(mutations)
+              count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+              row <- data.frame("lowerbound" = low, "upperbound" = up,
+                                "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id)
+              possible_bins <- rbind(possible_bins, row)
+            }
+          }
+          gc()
+        }
+        gc()
+      }
+      gc()
     }
-    return(all_pos_bins)
+    return(possible_bins)       # all amplicons are added to dataframe
+  }
+  chrom_list <- unique(as.list(data$chr)) # list of all chromosomes found in this dataset
+  all_pos_bins <- data.frame()
+  for (chrom in chrom_list){
+    chromosome <- subset(data, chr == chrom)
+    chromsort <- chromosome[order(chromosome$pos), ] #order df from lowest to highest position
+    chrom_bins <- amplicon_finder(chromsort, chrom) #run through above function
+    all_pos_bins <- rbind(all_pos_bins, chrom_bins) #add all bins together from all chromosomes
+    rm(list = ls()[! ls() %in% c("amplicon_finder", "data", "all_pos_bins", "chrom_list", "amp")])
+    gc()
+  }
+  return(all_pos_bins)
 }
 
 
@@ -248,12 +224,13 @@ amp_pool <- function(data, amp, len){
 #' @examples
 #'
 #' load(example.RData)
-#' my_bins <- amp_pool(data, 100, 5000)
+#' my_bins <- amp_pool(data, 100)
 #'
-#' fw_hotspot(my_bins, data, 100, 5000)
+#' fw_hotspot(my_bins, data, 100, 1000)
 
 
 fw_hotspot <- function(bins, data, amp, len){
+    pos <- data$pos
     panel_length = len #set panel and amplicon length
     amp_length = amp
     all_pos_bins <- bins
@@ -295,6 +272,7 @@ fw_hotspot <- function(bins, data, amp, len){
             spot_sub <- new_sub
             if (nrow(spot_sub > 0)){spot_sub <- spot_sub[order(-spot_sub$count), ]}
         }
+        gc()
     }
     final_bin <- rbind(subset(ordered_bin, id == "x"), possible_bins)
     final_bin <- final_bin[order(-final_bin$count), ]
@@ -418,14 +396,15 @@ fw_hotspot <- function(bins, data, amp, len){
 #' @examples
 #'
 #' load(example.RData)
-#' my_bins <- amp_pool(data, 100, 5000)
+#' my_bins <- amp_pool(data, 100)
 #'
-#' my_fw_panel <- fw_hotspot(my_bins, data, 100, 5000)
+#' my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000)
 #'
-#' com_hotspot(my_fw_panel, my_bins, data, 100, 5000, 3)
+#' com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3)
 #'
 
 com_hotspot <- function(fw_panel, bins, data, amp, len, size){
+    pos <- data$pos
     panel_length = len #set panel and amplicon length
     amp_length = amp
     all_pos_bins <- bins
@@ -562,6 +541,7 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
                 }
             }
         }
+        gc()
     }
     all_best_combo <- list()
     fin_possible_bins <- data.frame()
@@ -725,6 +705,7 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
                 if (nrow(maybe_bins > 0)){maybe_bins <- maybe_bins[order(-maybe_bins$count), ]}
             }
         }
+        gc()
     }
     best_bin_all <- fin_possible_bins
     ordered_bin <- ordered_bin[-c(6:7)]

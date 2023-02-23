@@ -5,7 +5,7 @@ author:
 - Lei Wei
 - Gyorgy Paragh
 date: "2022-10-04"
-package: hotspot
+package: seq.hotSPOT
 output: BiocStyle::html_document
 vignette: >
   %\VignetteIndexEntry{seq.hotspot vignette}
@@ -24,8 +24,8 @@ Next generation sequencing is a powerful tool for assessment of mutation burden 
 The mutation dataset should include two columns containing the chromosome and genomic position, the columns should be names "chr" and "pos" respectively. Optionally the gene names for each mutation may be included under a column names "gene".
 
 ```{r load data}
-load("example.RData")
-data
+load("..\\data\\example.RData")
+head(data)
 ```
 
 
@@ -52,8 +52,11 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 ![NOTE](/seq.hotSPOT/vignettes/hotSPOT_ampfinder.jpeg)
 
 ```{r run amp finder}
-amps <- amp_pool(data, 100, 5000)
-amps
+amps <- amp_pool(data, 100)
+
+rm(list = ls()[! ls() %in% c("amps", "data")])
+
+head(amps)
 ```
 
 Forward Selection Sequencing Panel Identifier
@@ -76,8 +79,11 @@ Forward Selection Sequencing Panel Identifier
 
 ![NOTE](/seq.hotSPOT/vignettes/hotSPOT_fwbin.jpeg)
 ```{r fw binning}
-fw_bins <- fw_hotspot(amps, data, 100, 5000)
-fw_bins
+fw_bins <- fw_hotspot(amps, data, 100, 1000)
+
+rm(list = ls()[! ls() %in% c("amps", "data", "fw_bins")])
+
+head(fw_bins)
 ```
 
 Comprehensive Selection Sequencing Panel Identifier (Optimal mutation capture)
@@ -121,8 +127,9 @@ Comprehensive Selection Sequencing Panel Identifier (Optimal mutation capture)
 ![NOTE](/seq.hotSPOT/vignettes/hotSPOT_combin.jpeg)
 
 ```{r com binning}
-com_bins <- com_hotspot(fw_bins, amps, data, 100, 5000, 3)
-com_bins
+com_bins <- com_hotspot(fw_bins, amps, data, 100, 1000, 3)
+
+head(com_bins)
 ```
 
 
