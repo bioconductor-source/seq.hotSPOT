@@ -79,32 +79,32 @@ amp_pool <- function(data, amp){
     make_bins <- sort(unique(pos))
     bins <- data.frame()
     diffs <- diff(make_bins)
-    large_diffs <- c(1, which(diffs > amp))
-    for (d in seq_along(large_diffs)){
-      row <- data.frame("lowerbound" = make_bins[[large_diffs[[d]]]], "upperbound" = make_bins[[large_diffs[[d]]]], "chromosome" = chr)
+    large_diffs <- c(0, which(diffs > amp))
+    for (d in 1:(length(large_diffs)-1)){
+      row <- data.frame("lowerbound" = make_bins[[(large_diffs[[d]] + 1)]], "upperbound" = make_bins[[large_diffs[[d + 1]]]], "chromosome" = chr)
       bins <- rbind(bins, row)
       gc()
     }
     mut_locations <- data.frame()
     possible_bins <- data.frame()
-    for (i in seq_len(nrow(bins))){ ## for each bin, finds amplicons which may optimally cover that region
+    for (i in 1:nrow(bins)){
       up_mut <- bins$upperbound[[i]]
-      low_mut <- bins$lowerbound[[i]]   # find length of bin
+      low_mut <- bins$lowerbound[[i]]
       vec <- up_mut:low_mut
       dif <- length(vec) - amp
-      if (dif <= 0){                    # if the bin is <= amplicon length, we only need to generate a single amplicon
+      if (dif <= 0){
         up <- bins$upperbound[[i]]
         low <- bins$lowerbound[[i]]
         vec <- up:low
-        mutations <- intersect(vec, pos)    #find all mutations in total bin region
+        mutations <- intersect(vec, pos) #find all mutations in total bin region
         mutations_keys <- make.keys(mutations)
         count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
         mut_all <- c()
-        for (m in seq_len(length(mutations))){
+        for (m in 1:length(mutations)){
           mut_all <- c(mut_all, rep(mutations[[m]], as.vector(values(dict, keys = mutations_keys))[[m]]))
         }
         weighted_mid <- round(mean(mut_all))
-        weighted_mid_max <- (ceiling(mean(vec)) + (amp/2))        # the single amplicon we choose to cover this bin is weighted based on mutation distribution
+        weighted_mid_max <- (ceiling(mean(vec)) + (amp/2))
         weighted_mid_min <- (floor(mean(vec)) - (amp/2))
         if (weighted_mid < weighted_mid_min){final_mid <- weighted_mid_min}
         if (weighted_mid > weighted_mid_max){final_mid <- weighted_mid_max}
@@ -116,17 +116,17 @@ amp_pool <- function(data, amp){
         mutations_keys <- make.keys(mutations)
         count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
         row <- data.frame("lowerbound" = low, "upperbound" = up,
-                          "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x")
+                          "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x", "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
         possible_bins <- rbind(possible_bins, row)
       }
-      else{                                    # for bins greater than one amplicon length, we generate 5 possible amplicons for each mutation within the bin
+      else{
         up_mut <- bins$upperbound[[i]]
         low_mut <- bins$lowerbound[[i]]
         vec <- up_mut:low_mut
         mut_list <- intersect(vec, pos)
-        id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-") # every time a new bin is created, it is assigned a unique id
+        id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-")
         b_list <- list()
-        for (mut in mut_list){                      # creating 5 amplicons per mutation
+        for (mut in mut_list){
           bin1 <- (mut - amp):(mut - 1)
           b_list[[1]] <- bin1
           bin2 <- (mut - (amp - 1)):(mut)
@@ -137,6 +137,7 @@ amp_pool <- function(data, amp){
           b_list[[4]] <- bin4
           bin5 <- (mut - ceiling(amp / 2)):(mut - floor(amp / 2))
           b_list[[5]] <- bin5
+
           for (b in b_list){
             low <- min(b)
             up <- max(b)
@@ -145,15 +146,13 @@ amp_pool <- function(data, amp){
               mutations_keys <- make.keys(mutations)
               count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
               row <- data.frame("lowerbound" = low, "upperbound" = up,
-                                "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id)
+                                "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id, "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
               possible_bins <- rbind(possible_bins, row)
             }
           }
-          gc()
         }
-        gc()
+
       }
-      gc()
     }
     return(possible_bins)       # all amplicons are added to dataframe
   }
@@ -230,7 +229,11 @@ amp_pool <- function(data, amp){
 
 
 fw_hotspot <- function(bins, data, amp, len){
+    bins <- bins[,-c(6:7)]
     pos <- data$pos
+    pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
+    data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
+    data <- unique(data) #keep only unique positions
     panel_length = len #set panel and amplicon length
     amp_length = amp
     all_pos_bins <- bins
@@ -405,6 +408,9 @@ fw_hotspot <- function(bins, data, amp, len){
 
 com_hotspot <- function(fw_panel, bins, data, amp, len, size){
     pos <- data$pos
+    pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
+    data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
+    data <- unique(data) #keep only unique positions
     panel_length = len #set panel and amplicon length
     amp_length = amp
     all_pos_bins <- bins
@@ -463,7 +469,7 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
                 for (p in big_amp_ids){
                     amp_list <- list()
                     amp_spot_sub <- subset(maybe_new_big_spots, id == p)
-                    amp_test <- ceiling(length(amp_spot_sub$mut_lowerbound[[1]]:amp_spot_sub$mut_upperbound[[1]]) / 125)
+                    amp_test <- ceiling(length(amp_spot_sub$mut_lowerbound[[1]]:amp_spot_sub$mut_upperbound[[1]]) / len)
                     if (amp_test <= num_amps){new_big_spots <- rbind(new_big_spots, amp_spot_sub)}
                     if (amp_test > num_amps){
                         too_big_split <- data.frame("to" = min(amp_spot_sub$mut_lowerbound), "from" = max(amp_spot_sub$mut_upperbound))
