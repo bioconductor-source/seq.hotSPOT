@@ -3,7 +3,7 @@ seq.hotSPOT provides a resource for designing effective sequencing panels to hel
 
 
 seq.hotSPOT
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("seq.hotSPOT")
+# if (!require("BiocManager", quietly = TRUE))
+#   install.packages("BiocManager")
+# BiocManager::install("seq.hotSPOT")
 
