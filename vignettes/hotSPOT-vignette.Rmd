@@ -51,7 +51,7 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 
 
 ``` {r run amp finder}
-amps <- seq.hotSPOT::amp_pool(data, 100)
+amps <- amp_pool(data, 100)
 
 rm(list = ls()[! ls() %in% c("amps", "data")])
 
@@ -77,7 +77,7 @@ Forward Selection Sequencing Panel Identifier
   6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons     which fall below a set cumulative length.
 
 ``` {r fw binning}
-fw_bins <- seq.hotSPOT::fw_hotspot(amps, data, 100, 1000)
+fw_bins <- fw_hotspot(amps, data, 100, 1000)
 
 rm(list = ls()[! ls() %in% c("amps", "data", "fw_bins")])
 
@@ -114,7 +114,7 @@ Comprehensive Selection Sequencing Panel Identifier (Optimal mutation capture)
     a.	Depending on the desired length of the targeted panel, a cutoff may be applied to remove all             amplicons which fall below a set cumulative length.
 
 ``` {r com bins}
-com_bins <- seq.hotSPOT::com_hotspot(fw_bins, amps, data, 100, 1000, 3)
+com_bins <- com_hotspot(fw_bins, amps, data, 100, 1000, 3)
 
 head(com_bins)
 ```
