@@ -45,7 +45,7 @@
 #'
 #'@examples
 #'
-#' load(example.RData)
+#' data("mutation_data")
 #' my_bins <- amp_pool(data, 100)
 #'
 #' fw_hotspot(my_bins, data, 100, 1000)

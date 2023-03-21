@@ -24,7 +24,7 @@ The mutation dataset should include two columns containing the chromosome and ge
 
 
 ``` {r load data}
-data("example")
+data("mutation_data")
 head(data)
 ```
 

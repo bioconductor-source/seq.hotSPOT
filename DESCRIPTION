@@ -14,7 +14,7 @@ Description: seq.hotSPOT provides a resource for designing effective sequencing 
     to study low-frequency clonal mutations in clinically normal and cancerous tissues.
 License: Artistic-2.0
 Encoding: UTF-8
-LazyData: FALSE
+LazyData: TRUE
 RoxygenNote: 7.2.3
 biocViews: Software, Technology, Sequencing, DNASeq, WholeGenome
 Imports: R.utils, hash, rlist
