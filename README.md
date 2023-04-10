@@ -34,12 +34,14 @@ library(seq.hotSPOT)
 
 The mutation dataset should include two columns containing the chromosome and genomic position of each mutation. The columns should be named "chr" and "pos" respectively. Optionally, the gene names for each mutation may be included under a column named "gene".
 
-![Example Input Dataset](example_input.png)
-
+Loading example data:
 ``` {r load data}
 data("mutation_data")
-head(data)
 ```
+
+![Example Input Dataset](example_input.png)
+
+
 
 ## Overview of hotSPOT Algorithm <a name = "algorithm"/>
 
@@ -68,6 +70,11 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 
 5.	All amplicons generated for each hotspot region of interest, are assigned a unique ID and added to the amplicon pool.
 
+Running amplicon finder:
+``` {r run amp finder, include = TRUE}
+amps <- amp_pool(data = data, amp = 100)
+```
+
 ![](amplicon_pool.png)
 
 ### Forward Selection Sequencing Panel Identifier <a name = "fw_bin"/>
@@ -88,6 +95,10 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 
 6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
+Running forward selection sequencing panel identifier
+``` {r fw binning, include = TRUE}
+fw_bins <- fw_hotspot(bins = amps, data = data, amp = 100, len = 1000, include_genes = TRUE)
+```
 
 ![](fw_hotspot.png)
 
@@ -125,6 +136,11 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 
   -Depending on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
+Running comprehensive selection sequencing panel identifier
+``` {r com bins, include = TRUE}
+com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = data, 
+                        amp = 100, len = 1000, size = 3, include_genes = TRUE)
+```
 
 ![](com_hotspot.png)
 
