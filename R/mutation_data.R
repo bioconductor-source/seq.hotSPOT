@@ -6,6 +6,8 @@
 #' @usage data
 #' @keywords datasets
 #'
+#' @return A dataframe containing the chromosome number, base pair location and optional gene name of mutations
+#'
 #' @format ## `mutation_data`
 #' a dataframe with 3 columns and 201 rows:
 #' \describe{

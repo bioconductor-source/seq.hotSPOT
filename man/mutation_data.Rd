@@ -17,6 +17,9 @@ a dataframe with 3 columns and 201 rows:
 \usage{
 data
 }
+\value{
+A dataframe containing the chromosome number, base pair location and optional gene name of mutations
+}
 \description{
 dataframe containing the chromosome and base pair position
 from single nucleotide variants of ultradeep sequencing epidermis.

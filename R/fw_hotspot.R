@@ -46,7 +46,7 @@
 #'
 #' @return A dataframe containing the genomic coordinates for targeted sequencing panel
 #'
-#'@examples
+#' @examples
 #'
 #' data("mutation_data")
 #' my_bins <- amp_pool(data, 100)
