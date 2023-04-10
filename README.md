@@ -22,7 +22,8 @@ seq.hotSPOT provides a resource for designing effective sequencing panels to hel
 
 ``` {r install package}
 if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")                                                                      BiocManager::install("seq.hotSPOT")
+  install.packages("BiocManager")                                                                      
+BiocManager::install("seq.hotSPOT")
 ```
 
 ``` {r load library}
@@ -47,17 +48,24 @@ head(data)
 This algorithm searches the mutational dataset (input) for mutational hotspot regions on each chromosome:
 
 1.	Starting at the mutation with the lowest chromosomal position (primary mutation), using a modified rank and recovery system, the algorithm searches for the closest neighboring mutation.
+
 2.	If the neighboring mutation is less than one amplicon, in distance, away from the primary mutation, the neighboring mutation is included within the hotspot region.
-  -This rank and recovery system is repeated, integrating mutations into the hotspot region until the neighboring mutation is greater than or equal to the length of one amplicon in distance, from the primary mutation.
-  -Once neighboring mutations equal or exceed one amplicon in distance from the primary mutation, incorporation into the hotspot region, halts incorporation.
+
+-This rank and recovery system is repeated, integrating mutations into the hotspot region until the neighboring mutation is greater than or equal to the length of one amplicon in distance, from the primary mutation.
+-Once neighboring mutations equal or exceed one amplicon in distance from the primary mutation, incorporation into the hotspot region, halts incorporation.
+
 3.	For hotspots within the one amplicon range, from the lowest to highest mutation location, this area is covered by a single amplicon and added to an amplicon pool, with a unique ID.
-  -The center of these single amplicons is then defined by the weighted distribution of mutations.
+
+-The center of these single amplicons is then defined by the weighted distribution of mutations.
+  
 4.	For all hotspots larger than one amplicon, the algorithm examines 5 potential amplicons at each covered mutation in the hotspot:
-  -one amplicon directly upstream of the primary mutation
-  -one amplicon directly downstream of the primary mutation
-  -one amplicon including the mutation at the end of the read and base pairs (amplicon length - 1) upstream
-  -one amplicon including the mutation at the beginning of the read and base pairs (amplicon length - 1) downstream
-  -one amplicon with the mutation directly in the center.
+
+-one amplicon directly upstream of the primary mutation
+-one amplicon directly downstream of the primary mutation
+-one amplicon including the mutation at the end of the read and base pairs (amplicon length - 1) upstream
+-one amplicon including the mutation at the beginning of the read and base pairs (amplicon length - 1) downstream
+-one amplicon with the mutation directly in the center.
+
 5.	All amplicons generated for each hotspot region of interest, are assigned a unique ID and added to the amplicon pool.
 
 ![](amplicon_pool.png)
@@ -65,13 +73,19 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 ### Forward Selection Sequencing Panel Identifier <a name = "fw_bin"/>
 
 1.	Amplicons covering hotspots less than or equal to one amplicon in length, are added to the final sequencing panel dataset.
+
 2.	For amplicons covering larger hotspot regions, the algorithm uses a forward selection method to determine the optimal combination of amplicons to use in the sequencing panel:
-  -the algorithm first identifies the amplicon containing the highest number of mutations
-  -the algorithm then identifies the next amplicon, which contains the highest number of new mutations.
-  -this process continues until all mutations are covered by at least one amplicon
+
+-the algorithm first identifies the amplicon containing the highest number of mutations
+-the algorithm then identifies the next amplicon, which contains the highest number of new mutations.
+-this process continues until all mutations are covered by at least one amplicon
+
 3.	Each of these amplicons are then added to the final sequencing panel, with their own unique IDs.
+
 4.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of mutations they cover.
+
 5.	The algorithm then calculates the cumulative base-pair length and the cumulative mutations covered by each amplicon.
+
 6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 
@@ -80,21 +94,35 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 ### Comprehensive Selection Sequencing Panel Identifier <a name = "comp_bin"/>
 
 1.	To conserve computational power, the forward selection sequencing panel identifier is run to determine the lowest number of mutations per amplicon (mutation frequency) that need to be included in the predetermined length sequencing panel.
-  -any amplicon generated by the algorithm, which is less than this threshold value, will be removed.
+
+-any amplicon generated by the algorithm, which is less than this threshold value, will be removed.
+
 2.	For the feasible exhaustive selection of amplicon combinations covering hotspot areas larger than the predefined number of amplicons in length, the algorithm breaks these large regions into multiple smaller regions.
-  -the amplicons covering these regions are pulled from the amplicon pool, based on their unique IDs.
+
+-the amplicons covering these regions are pulled from the amplicon pool, based on their unique IDs.
+
 3.	The algorithm finds both the minimum number of amplicons overlap and all positions with this value and identifies the region with the longest continuous spot of minimum value.
-  -the region is split at the center of this longest continuous minimum post values and continues the splitting process until all smaller regions are less than the “n” number amplicon length set by the user.
-    -As this set number of amplicons decreases, the computation time required also often decreases.
+
+-the region is split at the center of this longest continuous minimum post values and continues the splitting process until all smaller regions are less than the “n” number amplicon length set by the user.
+-As this set number of amplicons decreases, the computation time required also often decreases.
+
 4.	All amplicons contained in these bins are added back to the amplicon pool, based on a new unique ID.
+
 5.	Amplicons covering hotspots less than or equal to one amplicon length are added to the final sequencing panel dataset.
+
 6.	To determine the optimal combination of amplicons for each region, the number of amplicons necessary for full coverage of the bin is calculated.
+
 7.	A list is generated of every possible combination of n, number of amplicons, needed. For each combination of amplicons:
-  -amplicons that would not meet the threshold of unique mutations are filtered out, and the number of all mutations captured by these amplicons is calculated.
-  -the combination of amplicons that yields the highest number of mutations is added to the final sequencing panel.
+
+-amplicons that would not meet the threshold of unique mutations are filtered out, and the number of all mutations captured by these amplicons is calculated.
+-the combination of amplicons that yields the highest number of mutations is added to the final sequencing panel.
+
 8.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of mutations they cover.
+
 9.	All amplicons capturing the number of mutations equal to the cutoff are further ranked to favor amplicons that have mutations closer in location to the center of the amplicon.
+
 10.	Cumulative base-pair length and cumulative mutations covered by each amplicon are calculated.
+
   -Depending on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 

@@ -13,3 +13,6 @@ economic burden of whole-exome or whole-genome sequencing. This tool was develop
 high-depth sequencing panels to study low-frequency clonal mutations in clinically normal
 and cancerous tissues.
 }
+\value{
+A package containing functions which generate optimal targeted sequencing panels based on mutation hotspots.
+}
