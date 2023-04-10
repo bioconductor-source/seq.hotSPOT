@@ -1,0 +1,31 @@
+#' mutation_data
+#' @name mutation_data
+#' @docType data
+#' @aliases data
+#' @title Single Nucleotide Variants in Clinically-Normal Epidermis
+#' @usage data
+#' @keywords datasets
+#'
+#' @format ## `mutation_data`
+#' a dataframe with 3 columns and 201 rows:
+#' \describe{
+#'  \item{chr}{Chromosome which the mutation is located on}
+#'  \item{pos}{Base pair position of mutation}
+#'  \item{gene}{Name of gene affected by mutation}
+#' }
+#'
+#' @description
+#' dataframe containing the chromosome and base pair position
+#' from single nucleotide variants of ultradeep sequencing epidermis.
+#'
+#' @references
+#' Wei L, Christensen SR, Fitzgerald ME, Graham J, Hutson ND, Zhang C,
+#' Huang Z, Hu Q, Zhan F, Xie J, Zhang J, Liu S, Remenyik E, Gellen E,
+#' Colegio OR, Bax M, Xu J, Lin H, Huss WJ, Foster BA, Paragh G.
+#' Ultradeep sequencing differentiates patterns of skin clonal mutations
+#' associated with sun-exposure status and skin cancer burden.
+#' Sci Adv. 2021 Jan 1;7(1):eabd7703. doi: 10.1126/sciadv.abd7703.
+#' PMID: 33523857; PMCID: PMC7775785.
+#'
+#'
+NULL

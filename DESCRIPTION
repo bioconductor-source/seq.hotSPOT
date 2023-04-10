@@ -1,7 +1,7 @@
 Package: seq.hotSPOT
 Type: Package
 Title: Targeted sequencing panel design based on mutation hotspots
-Version: 0.99.2
+Version: 0.99.3
 Authors@R: c(
   person("Sydney", "Grant", email = "sydney.grant@roswellpark.org", role = c("aut", "cre")),
   person("Lei", "Wei", email = "lei.wei@roswellpark.org", role = c("aut")),
@@ -14,9 +14,16 @@ Description: seq.hotSPOT provides a resource for designing effective sequencing 
     to study low-frequency clonal mutations in clinically normal and cancerous tissues.
 License: Artistic-2.0
 Encoding: UTF-8
-LazyData: TRUE
+LazyData: FALSE
 RoxygenNote: 7.2.3
 biocViews: Software, Technology, Sequencing, DNASeq, WholeGenome
-Imports: R.utils, hash, rlist
-Suggests: BiocStyle, knitr, rmarkdown
+Imports: R.utils, hash, stats, base
+Suggests: 
+    BiocStyle,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+URL: https://github.com/sydney-grant/seq.hotSPOT
+BugReports: https://github.com/sydney-grant/seq.hotSPOT/issues 
+Config/testthat/edition: 3

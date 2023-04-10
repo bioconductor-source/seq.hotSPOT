@@ -4,7 +4,7 @@
 \alias{com_hotspot}
 \title{comprehensive amplicon ranking}
 \usage{
-com_hotspot(fw_panel, bins, data, amp, len, size)
+com_hotspot(fw_panel, bins, data, amp, len, size, include_genes)
 }
 \arguments{
 \item{fw_panel}{a dataframe containing the sequencing panel designed by fw_hotspot}
@@ -18,6 +18,8 @@ com_hotspot(fw_panel, bins, data, amp, len, size)
 \item{len}{The total length of sequencing panel in number of base pairs}
 
 \item{size}{the threshold of hotspot size to split up in number of amplicons}
+
+\item{include_genes}{True or False based on whether dataset includes gene names}
 }
 \value{
 A dataframe containing the genomic coordinates for targeted sequencing panel
@@ -85,8 +87,8 @@ amplicon are calculated.
 data("mutation_data")
 my_bins <- amp_pool(data, 100)
 
-my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000)
+my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000, TRUE)
 
-com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3)
+com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3, TRUE)
 
 }

@@ -33,13 +33,16 @@
 #' applied to remove all amplicons which fall below a set cumulative length.
 
 #'
-#' @import hash
-#' @import rlist
-#' @import R.utils
+#' @importFrom hash make.keys
+#' @importFrom hash hash
+#' @importFrom hash values
+#' @importFrom stats ftable
+#' @importFrom stats median
 #' @param bins A dataframe containing all potential amplicons
 #' @param data A dataframe containing the location of each mutation.
 #' @param amp The length of amplicons in number of base pairs
 #' @param len The total length of sequencing panel in number of base pairs
+#' @param include_genes True or False based on whether dataset includes gene names
 #'
 #' @return A dataframe containing the genomic coordinates for targeted sequencing panel
 #'
@@ -48,20 +51,35 @@
 #' data("mutation_data")
 #' my_bins <- amp_pool(data, 100)
 #'
-#' fw_hotspot(my_bins, data, 100, 1000)
+#' fw_hotspot(my_bins, data, 100, 1000, TRUE)
 #'
 #' @export
 #'
 
 
-fw_hotspot <- function(bins, data, amp, len){
+fw_hotspot <- function(bins, data, amp, len, include_genes){
+  if (base::isFALSE(is.data.frame(data))){stop("Input data must be in the form of data.frame")}
+  if (base::isFALSE("chr" %in% colnames(data))){stop("input data must contain column 'chr'")}
+  if (base::isFALSE("pos" %in% colnames(data))){stop("input data must contain column 'pos'")}
+  if (base::isFALSE(is.numeric(data$pos))){stop("column 'pos' must be in the form of numeric")}
+  if (base::isFALSE(is.numeric(data$chr)) & base::isFALSE(is.character(data$chr)))
+  {stop("column 'chr' must be in the form of either numeric or character")}
+  if (base::isTRUE(include_genes) & base::isFALSE("gene" %in% colnames(data)))
+  {stop("input data must contain column 'gene'")}
+  if (base::isTRUE(include_genes) & base::isFALSE(is.character(data$gene))){
+    stop("column 'gene' must be in the form of character")
+  }
+  if (amp < 1){stop("amplicon length must be greater than 1 base pair")}
+  if (base::isFALSE(is.data.frame(bins))){stop("Bins must be in the form of data.frame")}
+  if (len < amp){stop("Panel length must be equal to or greater than one amplicon")}
+  if (len < nrow(data)){stop("Panel length cannot be greater than number of mutations in input data")}
   bins <- bins[,-c(6:7)]
   pos <- data$pos
   pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
   data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
   data <- unique(data) #keep only unique positions
-  panel_length = len #set panel and amplicon length
-  amp_length = amp
+  panel_length <- len #set panel and amplicon length
+  amp_length <- amp
   all_pos_bins <- bins
   ordered_bin <- all_pos_bins[order(-all_pos_bins$count), ]
   big_spots <- ordered_bin[!ordered_bin$id == "x", ]
@@ -80,7 +98,7 @@ fw_hotspot <- function(bins, data, amp, len){
       big_bin_all <- c(big_bin_all, big_bin)
       possible_bins <- rbind(possible_bins, big_spot)   # first find the amplicon which contains the most mutations and add to final list
       if (nrow(spot_sub) > 1){
-        for (k in 2:nrow(spot_sub)){
+        for (k in seq(2,nrow(spot_sub))){
           row <- data.frame()
           test_bin <- spot_sub$upperbound[k]:spot_sub$lowerbound[k]
           overlap <- intersect(big_bin_all, test_bin)    # then for each remaining bin, adjust mutation count so they are only showing unique mutations
@@ -122,8 +140,8 @@ fw_hotspot <- function(bins, data, amp, len){
   final_bin[df_range_min:df_range_max,] <- subset_final_bin[seq_len(nrow(subset_final_bin)),]
   bin_len_list <- list()
   for (y in seq_len(nrow(final_bin))) {      #calculating bin length using upper and lower bound positions
-    upper = final_bin$upperbound[[y]]
-    lower = final_bin$lowerbound[[y]]
+    upper <- final_bin$upperbound[[y]]
+    lower <- final_bin$lowerbound[[y]]
     bin_len <- upper - lower + 1# add 1 to include both upper and lowerbound plus all bp inbetween
     bin_len_list <- c(bin_len_list, bin_len) #make list of all bin lengths
   }
@@ -134,7 +152,7 @@ fw_hotspot <- function(bins, data, amp, len){
   cum_mut_list <- list()
   cum_mut_list[[1]] <- count_list[[1]]  #start list with first bin length and first mutation count
   bin_len_cum[[1]] <- bin_len_list[[1]]
-  for (u in 2:length(count_list)) {     #repeat for all other bins
+  for (u in seq(2, length(count_list))) {     #repeat for all other bins
     cum_mut_list[[u]] <- cum_mut_list[[u-1]] + count_list[[u]]  #add all calculated bin lengths and mutation counts to value one row above
     bin_len_cum[[u]] <- bin_len_cum[[u-1]] + bin_len_list[[u]]
   }
@@ -142,5 +160,17 @@ fw_hotspot <- function(bins, data, amp, len){
   final_bin$Cummulative_Mutations <- unlist(cum_mut_list)
   final_bin <- final_bin[final_bin$Cummulative_Bin_Length <= panel_length,] ##apply bp length cutoff if needed
   final_bin <- final_bin[,c(1:4,7:8)]
+  colnames(final_bin) <- c("Lowerbound", "Upperbound", "Chromosome", "Mutation Count",
+                           "Cumulative Panel Length", "Cumulative Mutations")
+  if (include_genes == TRUE){
+  gene_list <- c()
+  for (i in seq_len(nrow(final_bin))){
+    data.sub <- subset(data, chr == final_bin$Chromosome[[i]] & pos %in%
+                         final_bin$Lowerbound[[i]]:final_bin$Upperbound[[i]])
+    gene_list <- c(gene_list, paste(unique(data.sub$gene), collapse = ""))
+  }
+  final_bin$Gene <- unlist(gene_list)
+  }
+
   return(final_bin)
 }

@@ -58,16 +58,19 @@
 #'   a.	Depending on the desired length of the targeted panel, a cutoff may be
 #'   applied to remove all amplicons which fall below a set cumulative length.
 #'
-#' @import hash
-#' @import rlist
-#' @import R.utils
+#' @importFrom hash make.keys
+#' @importFrom hash hash
+#' @importFrom hash values
+#' @importFrom R.utils seqToIntervals
+#' @importFrom stats ftable
+#' @importFrom stats median
 #' @param bins A dataframe containing all potential amplicons
 #' @param fw_panel a dataframe containing the sequencing panel designed by fw_hotspot
 #' @param data A dataframe containing the location of each mutation.
 #' @param amp The length of amplicons in number of base pairs
 #' @param len The total length of sequencing panel in number of base pairs
 #' @param size the threshold of hotspot size to split up in number of amplicons
-#'
+#' @param include_genes True or False based on whether dataset includes gene names
 #' @return A dataframe containing the genomic coordinates for targeted sequencing panel
 #'
 #'@examples
@@ -75,21 +78,37 @@
 #' data("mutation_data")
 #' my_bins <- amp_pool(data, 100)
 #'
-#' my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000)
+#' my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000, TRUE)
 #'
-#' com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3)
+#' com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3, TRUE)
 #'
 #' @export
 #'
 
 
-com_hotspot <- function(fw_panel, bins, data, amp, len, size){
+com_hotspot <- function(fw_panel, bins, data, amp, len, size, include_genes){
+  if (base::isFALSE(is.data.frame(data))){stop("Input data must be in the form of data.frame")}
+  if (base::isFALSE("chr" %in% colnames(data))){stop("input data must contain column 'chr'")}
+  if (base::isFALSE("pos" %in% colnames(data))){stop("input data must contain column 'pos'")}
+  if (base::isFALSE(is.numeric(data$pos))){stop("column 'pos' must be in the form of numeric")}
+  if (base::isFALSE(is.numeric(data$chr)) & base::isFALSE(is.character(data$chr)))
+  {stop("column 'chr' must be in the form of either numeric or character")}
+  if (base::isTRUE(include_genes) & base::isFALSE("gene" %in% colnames(data)))
+  {stop("input data must contain column 'gene'")}
+  if (base::isTRUE(include_genes) & base::isFALSE(is.character(data$gene))){
+    stop("column 'gene' must be in the form of character")
+  }
+  if (amp < 1){stop("amplicon length must be greater than 1 base pair")}
+  if (base::isFALSE(is.data.frame(bins))){stop("Bins must be in the form of data.frame")}
+  if (len < amp){stop("Panel length must be equal to or greater than one amplicon")}
+  if (len < nrow(data)){stop("Panel length cannot be greater than number of mutations in input data")}
+  if (size < 1 | size > 10){stop("Size of large hotspots must be between 1 to 10")}
   pos <- data$pos
   pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
   data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
   data <- unique(data) #keep only unique positions
-  panel_length = len #set panel and amplicon length
-  amp_length = amp
+  panel_length <- len #set panel and amplicon length
+  amp_length <- amp
   all_pos_bins <- bins
   num_amps <- size
   length <- nrow(fw_panel[fw_panel$Cummulative_Bin_Length <= len,])
@@ -101,7 +120,7 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
   dict <- hash(keys = keys, values = data$Freq)
   possible_bins <- data.frame()
   maybe_possible_bins <- data.frame()
-  y = 1
+  y <- 1
   new_pos <- pos
   new_big_spots <- data.frame()
   maybe_new_big_spots <- data.frame()
@@ -411,8 +430,8 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
   final_bin[df_range_min:df_range_max,] <- subset_final_bin[1:nrow(subset_final_bin),]
   bin_len_list <- list()
   for (y in seq_len(nrow(final_bin))) {      #calculating bin length using upper and lower bound positions
-    upper = final_bin$upperbound[[y]]
-    lower = final_bin$lowerbound[[y]]
+    upper <- final_bin$upperbound[[y]]
+    lower <- final_bin$lowerbound[[y]]
     bin_len <- upper - lower + 1# add 1 to include both upper and lowerbound plus all bp inbetween
     bin_len_list <- c(bin_len_list, bin_len) #make list of all bin lengths
   }
@@ -431,5 +450,16 @@ com_hotspot <- function(fw_panel, bins, data, amp, len, size){
   final_bin$Cummulative_Mutations <- unlist(cum_mut_list)
   final_bin <- final_bin[final_bin$Cummulative_Bin_Length <= panel_length,] ##apply bp length cutoff if needed
   final_bin <- final_bin[,c(1:4,7:8)]
+  colnames(final_bin) <- c("Lowerbound", "Upperbound", "Chromosome", "Mutation Count",
+                           "Cumulative Panel Length", "Cumulative Mutations")
+  if (include_genes == TRUE){
+    gene_list <- c()
+    for (i in seq_len(nrow(final_bin))){
+      data.sub <- subset(data, chr == final_bin$Chromosome[[i]] & pos %in%
+                           final_bin$Lowerbound[[i]]:final_bin$Upperbound[[i]])
+      gene_list <- c(gene_list, paste(unique(data.sub$gene), collapse = ""))
+    }
+    final_bin$Gene <- unlist(gene_list)
+  }
   return(final_bin)
 }

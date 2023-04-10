@@ -1,6 +1,14 @@
 ---
 title: "hotSPOT-vignette"
-output: rmarkdown::html_vignette
+author: 
+- Sydney Grant
+- Lei Wei
+- Gyorgy Paragh
+package: seq.hotSPOT
+output: 
+  BiocStyle::html_document:
+  toc: true
+  theme: cerulean
 vignette: >
   %\VignetteIndexEntry{hotSPOT-vignette}
   %\VignetteEngine{knitr::rmarkdown}
@@ -14,11 +22,31 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+# seq.hotSPOT
+
+### Sydney R. Grant, Lei Wei, Gyorgy Paragh
+
+Department of Dermatology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+Department of Cell Stress Biology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+Department of Biostatistics and Bioinformatics, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+
+[In detail description of methods and application of seq.hotSPOT](https://www.mdpi.com/2072-6694/15/5/1612)
+
+  
+## Introduction 
+
+Next generation sequencing is a powerful tool for assessment of mutation burden in both healthy and diseased tissues. However, in order to sufficiently capture mutation burden in clinically healthy tissues, deep sequencing is required. While whole-exome and whole-genome sequencing are popular methods for sequencing cancer samples, it is not economically feasible to sequence large genomic regions at the high depth needed for healthy tissues. Therefore, it is important to identify relevant genomic areas to design targeted sequencing panels.
+
+seq.hotSPOT provides a resource for designing effective sequencing panels to help improve mutation capture efficacy for ultradeep sequencing projects. Using SNV datasets, this package designs custom panels for any tissue of interest and identify the genomic regions likely to contain the most mutations. Establishing efficient targeted sequencing panels can allow researchers to study mutation burden in tissues at high depth without the economic burden of whole-exome or whole-genome sequencing. This tool was developed to make high-depth sequencing panels to study low-frequency clonal mutations in clinically normal and cancerous tissues.
+
+
+```{r load library, include = FALSE}
 library(seq.hotSPOT)
 ```
 
-Next generation sequencing is a powerful tool for assessment of mutation burden in both healthy and diseased tissues. However, in order to sufficiently capture mutation burden in clinically healthy tissues, deep sequencing is required. While whole-exome and whole-genome sequencing are popular methods for sequencing cancer samples, it is not economically feasible to sequence large genomic regions at the high depth needed for healthy tissues. Therefore, it is important to identify relevant genomic areas to design targeted sequenicng panels.
+## Generation of Amplicon Pool 
+
+### Dataset
 
 The mutation dataset should include two columns containing the chromosome and genomic position of each mutation. The columns should be named "chr" and "pos" respectively. Optionally, the gene names for each mutation may be included under a column named "gene".
 
@@ -28,93 +56,82 @@ data("mutation_data")
 head(data)
 ```
 
+### amp_pool
 
 This algorithm searches the mutational dataset (input) for mutational hotspot regions on each chromosome:
 
-  1.	Starting at the mutation with the lowest chromosomal position (primary mutation), using a modified     rank and recovery system, the algorithm searches for the closest neighboring mutation.
-
-  2.	If the neighboring mutation is less than one amplicon, in distance, away from the primary mutation,     the neighboring mutation is included within the hotspot region.
-    a.	This rank and recovery system is repeated, integrating mutations into the hotspot region until the           neighboring mutation is greater than or equal to the length of one amplicon in distance, from the             primary mutation.
-    b.	Once neighboring mutations equal or exceed one amplicon in distance from the primary mutation,            incorporation into the hotspot region, halts incorporation.
-
-  3.	For hotspots within the one amplicon range, from the lowest to highest mutation location, this area is     covered by a single amplicon and added to an amplicon pool, with a unique ID.
-    a.	The center of these single amplicons is then defined by the weighted distribution of mutations.
-
-  4.	For all hotspots larger than one amplicon, the algorithm examines 5 potential amplicons at each             covered mutation in the hotspot:
-    a.	one amplicon directly upstream of the primary mutation
-    b.	one amplicon directly downstream of the primary mutation
-    c.	one amplicon including the mutation at the end of the read and base pairs (amplicon length - 1)             upstream
-    d.	one amplicon including the mutation at the beginning of the read and base pairs (amplicon length -        1) downstream
-    e.	one amplicon with the mutation directly in the center.
-
-  5.	All amplicons generated for each hotspot region of interest, are assigned a unique ID and added to the     amplicon pool.
+1.	Starting at the mutation with the lowest chromosomal position (primary mutation), using a modified rank and recovery system, the algorithm searches for the closest neighboring mutation.
+2.	If the neighboring mutation is less than one amplicon, in distance, away from the primary mutation, the neighboring mutation is included within the hotspot region.
+  -This rank and recovery system is repeated, integrating mutations into the hotspot region until the neighboring mutation is greater than or equal to the length of one amplicon in distance, from the primary mutation.
+  -Once neighboring mutations equal or exceed one amplicon in distance from the primary mutation, incorporation into the hotspot region, halts incorporation.
+3.	For hotspots within the one amplicon range, from the lowest to highest mutation location, this area is covered by a single amplicon and added to an amplicon pool, with a unique ID.
+  -The center of these single amplicons is then defined by the weighted distribution of mutations.
+4.	For all hotspots larger than one amplicon, the algorithm examines 5 potential amplicons at each covered mutation in the hotspot:
+  -one amplicon directly upstream of the primary mutation
+  -one amplicon directly downstream of the primary mutation
+  -one amplicon including the mutation at the end of the read and base pairs (amplicon length - 1) upstream
+  -one amplicon including the mutation at the beginning of the read and base pairs (amplicon length - 1) downstream
+  -one amplicon with the mutation directly in the center.
+5.	All amplicons generated for each hotspot region of interest, are assigned a unique ID and added to the amplicon pool.
 
 
-``` {r run amp finder}
-amps <- amp_pool(data, 100)
-
-rm(list = ls()[! ls() %in% c("amps", "data")])
-
+``` {r run amp finder, include = TRUE}
+amps <- amp_pool(data = data, amp = 100)
 head(amps)
 ```
 
+## Forward Selection Sequencing Panel Identifier 
 
-Forward Selection Sequencing Panel Identifier
+### fw_hotspot
 
-  1.	Amplicons covering hotspots less than or equal to one amplicon in length, are added to the final        sequencing panel dataset.
-
-  2.	For amplicons covering larger hotspot regions, the algorithm uses a forward selection method to         determine the optimal combination of amplicons to use in the sequencing panel:
-    a.	the algorithm first identifies the amplicon containing the highest number of mutations
-    b.	the algorithm then identifies the next amplicon, which contains the highest number of new mutations.
-    c.	this process continues until all mutations are covered by at least one amplicon
-
-  3.	Each of these amplicons are then added to the final sequencing panel, with their own unique IDs.
-
-  4.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of    mutations they cover.
-
-  5.	The algorithm then calculates the cumulative base-pair length and the cumulative mutations covered by     each amplicon.
-
-  6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons     which fall below a set cumulative length.
+1.	Amplicons covering hotspots less than or equal to one amplicon in length, are added to the final sequencing panel dataset.
+2.	For amplicons covering larger hotspot regions, the algorithm uses a forward selection method to determine the optimal combination of amplicons to use in the sequencing panel:
+  -the algorithm first identifies the amplicon containing the highest number of mutations
+  -the algorithm then identifies the next amplicon, which contains the highest number of new mutations.
+  -this process continues until all mutations are covered by at least one amplicon
+3.	Each of these amplicons are then added to the final sequencing panel, with their own unique IDs.
+4.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of mutations they cover.
+5.	The algorithm then calculates the cumulative base-pair length and the cumulative mutations covered by each amplicon.
+6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 ``` {r fw binning}
-fw_bins <- fw_hotspot(amps, data, 100, 1000)
-
-rm(list = ls()[! ls() %in% c("amps", "data", "fw_bins")])
-
+fw_bins <- fw_hotspot(bins = amps, data = data, amp = 100, len = 1000, include_genes = TRUE)
 head(fw_bins)
 ```
 
-Comprehensive Selection Sequencing Panel Identifier (Optimal mutation capture)
+## Comprehensive Selection Sequencing Panel Identifier 
 
-  1.	To conserve computational power, the forward selection sequencing panel identifier is run to             determine the lowest number of mutations per amplicon (mutation frequency) that need to be included in     the predetermined length sequencing panel.
-    a.	any amplicon generated by the algorithm, which is less than this threshold value, will be removed.
+### com_hotspot
 
-  2.	For the feasible exhaustive selection of amplicon combinations covering hotspot areas larger than the     predefined number of amplicons in length, the algorithm breaks these large regions into multiple             smaller regions.
-    a.	The amplicons covering these regions are pulled from the amplicon pool, based on their unique IDs.
-
-  3.	The algorithm finds both the minimum number of amplicons overlap and all positions with this value       and identifies the region with the longest continuous spot of minimum value.
-    a.	The region is split at the center of this longest continuous minimum post values and continues the         splitting process until all smaller regions are less than the “n” number amplicon length set by the         user.
-      i.	As this set number of amplicons decreases, the computation time required also often decreases.
-
-  4.	All amplicons contained in these bins are added back to the amplicon pool, based on a new unique ID.
-
-  5.	Amplicons covering hotspots less than or equal to one amplicon length are added to the final             sequencing panel dataset.
-
-  6.	To determine the optimal combination of amplicons for each region, the number of amplicons necessary     for full coverage of the bin is calculated.
-
-  7.	A list is generated of every possible combination of n, number of amplicons, needed. For each            combination of amplicons:
-    a.	 amplicons that would not meet the threshold of unique mutations are filtered out, and the number        of all mutations captured by these amplicons is calculated.
-    b.	the combination of amplicons that yields the highest number of mutations is added to the final             sequencing panel.
-
-  8.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of     mutations they cover.
-
-  9.	All amplicons capturing the number of mutations equal to the cutoff are further ranked to favor        amplicons that have mutations closer in location to the center of the amplicon.
-
-  10.	Cumulative base-pair length and cumulative mutations covered by each amplicon are calculated.
-    a.	Depending on the desired length of the targeted panel, a cutoff may be applied to remove all             amplicons which fall below a set cumulative length.
+1.	To conserve computational power, the forward selection sequencing panel identifier is run to determine the lowest number of mutations per amplicon (mutation frequency) that need to be included in the predetermined length sequencing panel.
+  -any amplicon generated by the algorithm, which is less than this threshold value, will be removed.
+2.	For the feasible exhaustive selection of amplicon combinations covering hotspot areas larger than the predefined number of amplicons in length, the algorithm breaks these large regions into multiple smaller regions.
+  -the amplicons covering these regions are pulled from the amplicon pool, based on their unique IDs.
+3.	The algorithm finds both the minimum number of amplicons overlap and all positions with this value and identifies the region with the longest continuous spot of minimum value.
+  -the region is split at the center of this longest continuous minimum post values and continues the splitting process until all smaller regions are less than the “n” number amplicon length set by the user.
+    -As this set number of amplicons decreases, the computation time required also often decreases.
+4.	All amplicons contained in these bins are added back to the amplicon pool, based on a new unique ID.
+5.	Amplicons covering hotspots less than or equal to one amplicon length are added to the final sequencing panel dataset.
+6.	To determine the optimal combination of amplicons for each region, the number of amplicons necessary for full coverage of the bin is calculated.
+7.	A list is generated of every possible combination of n, number of amplicons, needed. For each combination of amplicons:
+  -amplicons that would not meet the threshold of unique mutations are filtered out, and the number of all mutations captured by these amplicons is calculated.
+  -the combination of amplicons that yields the highest number of mutations is added to the final sequencing panel.
+8.	All amplicons in the final sequencing panel are ranked from highest to lowest based on the number of mutations they cover.
+9.	All amplicons capturing the number of mutations equal to the cutoff are further ranked to favor amplicons that have mutations closer in location to the center of the amplicon.
+10.	Cumulative base-pair length and cumulative mutations covered by each amplicon are calculated.
+  -Depending on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 ``` {r com bins}
-com_bins <- com_hotspot(fw_bins, amps, data, 100, 1000, 3)
-
+com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = data, 
+                        amp = 100, len = 1000, size = 3, include_genes = TRUE)
 head(com_bins)
 ```
+
+
+```{r session info}
+sessionInfo()
+```
+
+
+
+

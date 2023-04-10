@@ -1,29 +1,115 @@
-#' Data File Description
-#'
-#' @name data
-#' @docType data
-#' @aliases data
-#' @title Single Nucleotide Variants in Clinically-Normal Epidermis
-#' @usage data
-#' @keywords datasets
-#'
-#' @format
-#' a dataframe with 3 columns and 201 rows
+#' amplicon finder
 #'
 #' @description
-#' dataframe containing the chromosome and base pair position
-#' from single nucleotide variants of ultradeep sequencing epidermis.
+#' create a dataframe containing the coordinates of all potential
+#' amplicons for single chromosome
 #'
-#' @references
-#' Wei L, Christensen SR, Fitzgerald ME, Graham J, Hutson ND, Zhang C,
-#' Huang Z, Hu Q, Zhan F, Xie J, Zhang J, Liu S, Remenyik E, Gellen E,
-#' Colegio OR, Bax M, Xu J, Lin H, Huss WJ, Foster BA, Paragh G.
-#' Ultradeep sequencing differentiates patterns of skin clonal mutations
-#' associated with sun-exposure status and skin cancer burden.
-#' Sci Adv. 2021 Jan 1;7(1):eabd7703. doi: 10.1126/sciadv.abd7703.
-#' PMID: 33523857; PMCID: PMC7775785.
 #'
-NULL
+#' @importFrom hash make.keys
+#' @importFrom hash hash
+#' @importFrom hash values
+#' @importFrom stats ftable
+#' @importFrom stats median
+#' @param data A dataframe containing the location of each mutation.
+#' @param chr The chromosome of interest
+#' @param amp_len The length of amplicons in number of base pairs
+#'
+#' @keywords internal
+#'
+#' @return A dataframe containing the genomic coordinates of all potential amplicons on a single chromosome
+#'
+#' @examples
+#'
+#' data("mutation_data")
+#' amplicon_finder(data, 1, 100)
+#'
+#' @noRd
+#'
+
+amplicon_finder <- function(data, chr, amp_len){
+  pos <- data$pos
+  keys <- make.keys(data$pos)
+  dict <- hash(keys = keys, values = data$Freq) #create dictionary for mutation locations and mutation frequency
+  make_bins <- sort(unique(pos))
+  bins <- data.frame()
+  diffs <- diff(make_bins)
+  large_diffs <- c(0, which(diffs > amp_len))
+  for (d in seq(1,(length(large_diffs)-1))){
+    row <- data.frame("lowerbound" = make_bins[[(large_diffs[[d]] + 1)]], "upperbound" = make_bins[[large_diffs[[d + 1]]]], "chromosome" = chr)
+    bins <- rbind(bins, row)
+    gc()
+  }
+  mut_locations <- data.frame()
+  possible_bins <- data.frame()
+  for (i in seq_len(nrow(bins))){
+    up_mut <- bins$upperbound[[i]]
+    low_mut <- bins$lowerbound[[i]]
+    vec <- up_mut:low_mut
+    dif <- length(vec) - amp_len
+    if (dif <= 0){
+      up <- bins$upperbound[[i]]
+      low <- bins$lowerbound[[i]]
+      vec <- up:low
+      mutations <- intersect(vec, pos) #find all mutations in total bin region
+      mutations_keys <- make.keys(mutations)
+      count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+      mut_all <- c()
+      for (m in seq_along(mutations)){
+        mut_all <- c(mut_all, rep(mutations[[m]], as.vector(values(dict, keys = mutations_keys))[[m]]))
+      }
+      weighted_mid <- round(mean(mut_all))
+      weighted_mid_max <- (ceiling(mean(vec)) + (amp_len/2))
+      weighted_mid_min <- (floor(mean(vec)) - (amp_len/2))
+      if (weighted_mid < weighted_mid_min){final_mid <- weighted_mid_min}
+      if (weighted_mid > weighted_mid_max){final_mid <- weighted_mid_max}
+      if (weighted_mid > weighted_mid_min & weighted_mid < weighted_mid_max){final_mid <- weighted_mid}
+      up <- final_mid + ceiling((amp_len - 1) / 2)
+      low <- final_mid - floor((amp_len - 1) / 2)
+      vec <- up:low
+      mutations <- intersect(vec, pos) #find all mutations in total bin region
+      mutations_keys <- make.keys(mutations)
+      count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+      row <- data.frame("lowerbound" = low, "upperbound" = up,
+                        "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x", "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
+      possible_bins <- rbind(possible_bins, row)
+    }
+    else{
+      up_mut <- bins$upperbound[[i]]
+      low_mut <- bins$lowerbound[[i]]
+      vec <- up_mut:low_mut
+      mut_list <- intersect(vec, pos)
+      id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-")
+      b_list <- list()
+      for (mut in mut_list){
+        bin1 <- (mut - amp_len):(mut - 1)
+        b_list[[1]] <- bin1
+        bin2 <- (mut - (amp_len - 1)):(mut)
+        b_list[[2]] <- bin2
+        bin3 <- (mut + amp_len):(mut + 1)
+        b_list[[3]] <- bin3
+        bin4 <- (mut + (amp_len - 1)):(mut)
+        b_list[[4]] <- bin4
+        bin5 <- (mut - ceiling(amp_len / 2)):(mut - floor(amp_len / 2))
+        b_list[[5]] <- bin5
+
+        for (b in b_list){
+          low <- min(b)
+          up <- max(b)
+          mutations <- intersect(b, pos)
+          if (length(mutations > 0)){
+            mutations_keys <- make.keys(mutations)
+            count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
+            row <- data.frame("lowerbound" = low, "upperbound" = up,
+                              "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id, "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
+            possible_bins <- rbind(possible_bins, row)
+          }
+        }
+      }
+
+    }
+  }
+  return(possible_bins)       # all amplicons are added to dataframe
+}
 
 #' create amplicon pool
 #'
@@ -74,9 +160,11 @@ NULL
 #' Optionally the gene names for each mutation may be included under a
 #' column names "gene".
 #'
-#' @import hash
-#' @import rlist
-#' @import R.utils
+#' @importFrom hash make.keys
+#' @importFrom hash hash
+#' @importFrom hash values
+#' @importFrom stats ftable
+#' @importFrom stats median
 #' @param data A dataframe containing the location of each mutation.
 #' @param amp The length of amplicons in number of base pairs
 #'
@@ -94,100 +182,23 @@ NULL
 
 
 amp_pool <- function(data, amp){
+  if (base::isFALSE(is.data.frame(data))){stop("Input data must be in the form of data.frame")}
+  if (base::isFALSE("chr" %in% colnames(data))){stop("input data must contain column 'chr'")}
+  if (base::isFALSE("pos" %in% colnames(data))){stop("input data must contain column 'pos'")}
+  if (base::isFALSE(is.numeric(data$pos))){stop("column 'pos' must be in the form of numeric")}
+  if (base::isFALSE(is.numeric(data$chr)) & base::isFALSE(is.character(data$chr)))
+  {stop("column 'chr' must be in the form of either numeric or character")}
+  if (amp < 1){stop("amplicon length must be greater than 1 base pair")}
   pos <- data$pos
   pos_freq <- data.frame(ftable(pos)) #make frequency table for each position
   data <- merge(data, pos_freq, by = "pos") #merge frequency table with original df
   data <- unique(data) #keep only unique positions
-  amplicon_finder <- function(data, chr){
-    pos <- data$pos
-    keys <- make.keys(data$pos)
-    dict <- hash(keys = keys, values = data$Freq) #create dictionary for mutation locations and mutation frequency
-    make_bins <- sort(unique(pos))
-    bins <- data.frame()
-    diffs <- diff(make_bins)
-    large_diffs <- c(0, which(diffs > amp))
-    for (d in 1:(length(large_diffs)-1)){
-      row <- data.frame("lowerbound" = make_bins[[(large_diffs[[d]] + 1)]], "upperbound" = make_bins[[large_diffs[[d + 1]]]], "chromosome" = chr)
-      bins <- rbind(bins, row)
-      gc()
-    }
-    mut_locations <- data.frame()
-    possible_bins <- data.frame()
-    for (i in 1:nrow(bins)){
-      up_mut <- bins$upperbound[[i]]
-      low_mut <- bins$lowerbound[[i]]
-      vec <- up_mut:low_mut
-      dif <- length(vec) - amp
-      if (dif <= 0){
-        up <- bins$upperbound[[i]]
-        low <- bins$lowerbound[[i]]
-        vec <- up:low
-        mutations <- intersect(vec, pos) #find all mutations in total bin region
-        mutations_keys <- make.keys(mutations)
-        count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-        mut_all <- c()
-        for (m in 1:length(mutations)){
-          mut_all <- c(mut_all, rep(mutations[[m]], as.vector(values(dict, keys = mutations_keys))[[m]]))
-        }
-        weighted_mid <- round(mean(mut_all))
-        weighted_mid_max <- (ceiling(mean(vec)) + (amp/2))
-        weighted_mid_min <- (floor(mean(vec)) - (amp/2))
-        if (weighted_mid < weighted_mid_min){final_mid <- weighted_mid_min}
-        if (weighted_mid > weighted_mid_max){final_mid <- weighted_mid_max}
-        if (weighted_mid > weighted_mid_min & weighted_mid < weighted_mid_max){final_mid <- weighted_mid}
-        up <- final_mid + ceiling((amp - 1) / 2)
-        low <- final_mid - floor((amp - 1) / 2)
-        vec <- up:low
-        mutations <- intersect(vec, pos) #find all mutations in total bin region
-        mutations_keys <- make.keys(mutations)
-        count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-        row <- data.frame("lowerbound" = low, "upperbound" = up,
-                          "chromosome" = bins$chromosome[[i]], "count" = count,"id" = "x", "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
-        possible_bins <- rbind(possible_bins, row)
-      }
-      else{
-        up_mut <- bins$upperbound[[i]]
-        low_mut <- bins$lowerbound[[i]]
-        vec <- up_mut:low_mut
-        mut_list <- intersect(vec, pos)
-        id = paste(as.character(bins$chromosome[[i]]), as.character(i), sep = "-")
-        b_list <- list()
-        for (mut in mut_list){
-          bin1 <- (mut - amp):(mut - 1)
-          b_list[[1]] <- bin1
-          bin2 <- (mut - (amp - 1)):(mut)
-          b_list[[2]] <- bin2
-          bin3 <- (mut + amp):(mut + 1)
-          b_list[[3]] <- bin3
-          bin4 <- (mut + (amp - 1)):(mut)
-          b_list[[4]] <- bin4
-          bin5 <- (mut - ceiling(amp / 2)):(mut - floor(amp / 2))
-          b_list[[5]] <- bin5
-
-          for (b in b_list){
-            low <- min(b)
-            up <- max(b)
-            mutations <- intersect(b, pos)
-            if (length(mutations > 0)){
-              mutations_keys <- make.keys(mutations)
-              count <- sum(as.vector(values(dict, keys = mutations_keys))) #get total mutations for total bin region
-              row <- data.frame("lowerbound" = low, "upperbound" = up,
-                                "chromosome" = bins$chromosome[[i]], "count" = count,"id" = id, "mut_lowerbound" = low_mut, "mut_upperbound" = up_mut)
-              possible_bins <- rbind(possible_bins, row)
-            }
-          }
-        }
-
-      }
-    }
-    return(possible_bins)       # all amplicons are added to dataframe
-  }
   chrom_list <- unique(as.list(data$chr)) # list of all chromosomes found in this dataset
   all_pos_bins <- data.frame()
   for (chrom in chrom_list){
     chromosome <- subset(data, chr == chrom)
     chromsort <- chromosome[order(chromosome$pos), ] #order df from lowest to highest position
-    chrom_bins <- amplicon_finder(chromsort, chrom) #run through above function
+    chrom_bins <- amplicon_finder(chromsort, chrom, amp) #run through above function
     all_pos_bins <- rbind(all_pos_bins, chrom_bins) #add all bins together from all chromosomes
     rm(list = ls()[! ls() %in% c("amplicon_finder", "data", "all_pos_bins", "chrom_list", "amp")])
     gc()

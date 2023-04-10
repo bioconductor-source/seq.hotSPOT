@@ -4,7 +4,7 @@
 \alias{fw_hotspot}
 \title{forward amplicon ranking}
 \usage{
-fw_hotspot(bins, data, amp, len)
+fw_hotspot(bins, data, amp, len, include_genes)
 }
 \arguments{
 \item{bins}{A dataframe containing all potential amplicons}
@@ -14,6 +14,8 @@ fw_hotspot(bins, data, amp, len)
 \item{amp}{The length of amplicons in number of base pairs}
 
 \item{len}{The total length of sequencing panel in number of base pairs}
+
+\item{include_genes}{True or False based on whether dataset includes gene names}
 }
 \value{
 A dataframe containing the genomic coordinates for targeted sequencing panel
@@ -55,6 +57,6 @@ applied to remove all amplicons which fall below a set cumulative length.
 data("mutation_data")
 my_bins <- amp_pool(data, 100)
 
-fw_hotspot(my_bins, data, 100, 1000)
+fw_hotspot(my_bins, data, 100, 1000, TRUE)
 
 }
