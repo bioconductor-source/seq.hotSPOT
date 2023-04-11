@@ -1,7 +1,7 @@
 Package: seq.hotSPOT
 Type: Package
 Title: Targeted sequencing panel design based on mutation hotspots
-Version: 0.99.6
+Version: 0.99.7
 Authors@R: c(
   person("Sydney", "Grant", email = "sydney.grant@roswellpark.org", role = c("aut", "cre")),
   person("Lei", "Wei", email = "lei.wei@roswellpark.org", role = c("aut")),
@@ -17,7 +17,7 @@ Encoding: UTF-8
 LazyData: FALSE
 RoxygenNote: 7.2.3
 biocViews: Software, Technology, Sequencing, DNASeq, WholeGenome
-Imports: R.utils, hash, stats, base
+Imports: R.utils, hash, stats, base, utils
 Suggests: 
     BiocStyle,
     knitr,

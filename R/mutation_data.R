@@ -1,9 +1,9 @@
 #' mutation_data
 #' @name mutation_data
 #' @docType data
-#' @aliases data
+#' @aliases mutation_data
 #' @title Single Nucleotide Variants in Clinically-Normal Epidermis
-#' @usage data
+#' @usage mutation_data
 #' @keywords datasets
 #'
 #' @return A dataframe containing the chromosome number, base pair location and optional gene name of mutations

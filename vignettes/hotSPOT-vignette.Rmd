@@ -24,11 +24,11 @@ knitr::opts_chunk$set(
 
 # seq.hotSPOT
 
-### Sydney R. Grant, Lei Wei, Gyorgy Paragh
+### Sydney R. Grant^1,2^, Lei Wei^3^, Gyorgy Paragh^1,2^
 
-Department of Dermatology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
-Department of Cell Stress Biology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
-Department of Biostatistics and Bioinformatics, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+^1^Department of Dermatology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+^2^Department of Cell Stress Biology, Roswell Park Comprehensive Cancer Center, Buffalo, NY
+^3^Department of Biostatistics and Bioinformatics, Roswell Park Comprehensive Cancer Center, Buffalo, NY
 
 [In detail description of methods and application of seq.hotSPOT](https://www.mdpi.com/2072-6694/15/5/1612)
 
@@ -37,10 +37,21 @@ Department of Biostatistics and Bioinformatics, Roswell Park Comprehensive Cance
 
 Next generation sequencing is a powerful tool for assessment of mutation burden in both healthy and diseased tissues. However, in order to sufficiently capture mutation burden in clinically healthy tissues, deep sequencing is required. While whole-exome and whole-genome sequencing are popular methods for sequencing cancer samples, it is not economically feasible to sequence large genomic regions at the high depth needed for healthy tissues. Therefore, it is important to identify relevant genomic areas to design targeted sequencing panels.
 
-seq.hotSPOT provides a resource for designing effective sequencing panels to help improve mutation capture efficacy for ultradeep sequencing projects. Using SNV datasets, this package designs custom panels for any tissue of interest and identify the genomic regions likely to contain the most mutations. Establishing efficient targeted sequencing panels can allow researchers to study mutation burden in tissues at high depth without the economic burden of whole-exome or whole-genome sequencing. This tool was developed to make high-depth sequencing panels to study low-frequency clonal mutations in clinically normal and cancerous tissues.
+Currently, minimal resources exist which enable researchers to design their own targeted sequencing panels based on specific biological questions and tissues of interest. seq.hotSPOT may be used in combination with the Bioconductor package `RTCGA.mutations`, which can be used to pull mutation datasets from the TCGA database to be used as input data in seq.hotSPOT functions. This would not only allow users to identify highly mutated regions in cancer of interest, but the package `RTCGA.clinical` may be also used to identify highly mutated regions in subsets of patients with specific clinical features of interest.
 
+seq.hotSPOT provides a resource for designing effective sequencing panels to help improve mutation capture efficacy for ultradeep sequencing projects. Establishing efficient targeted sequencing panels can allow researchers to study mutation burden in tissues at high depth without the economic burden of whole-exome or whole-genome sequencing. 
 
-```{r load library, include = FALSE}
+## Installation & Setup
+
+```
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("seq.hotSPOT")
+```
+
+Load [*seq.hotSPOT*][]
+
+```{r}
 library(seq.hotSPOT)
 ```
 
@@ -53,7 +64,7 @@ The mutation dataset should include two columns containing the chromosome and ge
 
 ``` {r load data}
 data("mutation_data")
-head(data)
+head(mutation_data)
 ```
 
 ### amp_pool
@@ -76,7 +87,7 @@ This algorithm searches the mutational dataset (input) for mutational hotspot re
 
 
 ``` {r run amp finder, include = TRUE}
-amps <- amp_pool(data = data, amp = 100)
+amps <- amp_pool(data = mutation_data, amp = 100)
 head(amps)
 ```
 
@@ -95,7 +106,7 @@ head(amps)
 6.	Dependent on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 ``` {r fw binning}
-fw_bins <- fw_hotspot(bins = amps, data = data, amp = 100, len = 1000, include_genes = TRUE)
+fw_bins <- fw_hotspot(bins = amps, data = mutation_data, amp = 100, len = 1000, include_genes = TRUE)
 head(fw_bins)
 ```
 
@@ -122,7 +133,7 @@ head(fw_bins)
   -Depending on the desired length of the targeted panel, a cutoff may be applied to remove all amplicons which fall below a set cumulative length.
 
 ``` {r com bins}
-com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = data, 
+com_bins <- com_hotspot(fw_panel = fw_bins, bins = amps, data = mutation_data, 
                         amp = 100, len = 1000, size = 3, include_genes = TRUE)
 head(com_bins)
 ```

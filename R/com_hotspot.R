@@ -76,15 +76,14 @@
 #'@examples
 #'
 #' data("mutation_data")
-#' my_bins <- amp_pool(data, 100)
+#' my_bins <- amp_pool(mutation_data, 100)
 #'
-#' my_fw_panel <- fw_hotspot(my_bins, data, 100, 1000, TRUE)
+#' my_fw_panel <- fw_hotspot(my_bins, mutation_data, 100, 1000, TRUE)
 #'
-#' com_hotspot(my_fw_panel, my_bins, data, 100, 1000, 3, TRUE)
+#' com_hotspot(my_fw_panel, my_bins, mutation_data, 100, 1000, 3, TRUE)
 #'
 #' @export
 #'
-
 
 com_hotspot <- function(fw_panel, bins, data, amp, len, size, include_genes){
   if (base::isFALSE(is.data.frame(data))){stop("Input data must be in the form of data.frame")}

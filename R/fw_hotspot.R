@@ -49,13 +49,12 @@
 #' @examples
 #'
 #' data("mutation_data")
-#' my_bins <- amp_pool(data, 100)
+#' my_bins <- amp_pool(mutation_data, 100)
 #'
-#' fw_hotspot(my_bins, data, 100, 1000, TRUE)
+#' fw_hotspot(my_bins, mutation_data, 100, 1000, TRUE)
 #'
 #' @export
 #'
-
 
 fw_hotspot <- function(bins, data, amp, len, include_genes){
   if (base::isFALSE(is.data.frame(data))){stop("Input data must be in the form of data.frame")}

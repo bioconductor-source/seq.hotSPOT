@@ -64,7 +64,7 @@ column names "gene".
 \examples{
 
 data("mutation_data")
-amp_pool(data, 100)
+amp_pool(mutation_data, 100)
 
 
 }

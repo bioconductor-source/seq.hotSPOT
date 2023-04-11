@@ -55,8 +55,8 @@ applied to remove all amplicons which fall below a set cumulative length.
 \examples{
 
 data("mutation_data")
-my_bins <- amp_pool(data, 100)
+my_bins <- amp_pool(mutation_data, 100)
 
-fw_hotspot(my_bins, data, 100, 1000, TRUE)
+fw_hotspot(my_bins, mutation_data, 100, 1000, TRUE)
 
 }

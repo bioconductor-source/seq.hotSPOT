@@ -10,6 +10,7 @@
 #' @importFrom hash values
 #' @importFrom stats ftable
 #' @importFrom stats median
+#' @importFrom utils globalVariables
 #' @param data A dataframe containing the location of each mutation.
 #' @param chr The chromosome of interest
 #' @param amp_len The length of amplicons in number of base pairs
@@ -21,10 +22,11 @@
 #' @examples
 #'
 #' data("mutation_data")
-#' amplicon_finder(data, 1, 100)
+#' amplicon_finder(mutation_data, 1, 100)
 #'
 #' @noRd
 #'
+utils::globalVariables(c("chr", "id", "count"), package = "seq.hotSPOT")
 
 amplicon_finder <- function(data, chr, amp_len){
   pos <- data$pos
@@ -173,12 +175,11 @@ amplicon_finder <- function(data, chr, amp_len){
 #' @examples
 #'
 #' data("mutation_data")
-#' amp_pool(data, 100)
+#' amp_pool(mutation_data, 100)
 #'
 #'
 #' @export
 #'
-
 
 
 amp_pool <- function(data, amp){

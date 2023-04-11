@@ -3,7 +3,6 @@
 \docType{data}
 \name{mutation_data}
 \alias{mutation_data}
-\alias{data}
 \title{Single Nucleotide Variants in Clinically-Normal Epidermis}
 \format{
 ## `mutation_data`
@@ -15,7 +14,7 @@ a dataframe with 3 columns and 201 rows:
 }
 }
 \usage{
-data
+mutation_data
 }
 \value{
 A dataframe containing the chromosome number, base pair location and optional gene name of mutations
