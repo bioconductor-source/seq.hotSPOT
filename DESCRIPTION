@@ -1,7 +1,7 @@
 Package: seq.hotSPOT
 Type: Package
 Title: Targeted sequencing panel design based on mutation hotspots
-Version: 0.99.7
+Version: 0.99.8
 Authors@R: c(
   person("Sydney", "Grant", email = "sydney.grant@roswellpark.org", role = c("aut", "cre")),
   person("Lei", "Wei", email = "lei.wei@roswellpark.org", role = c("aut")),
