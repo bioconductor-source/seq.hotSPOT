@@ -1,3 +1,3 @@
-Version: 0.99.3
-Date: 2023-04-07
-Text: Submitted to Bioconductor
+# seq.hotSPOT 0.99.6
+
+* Added a `NEWS.md` file to track changes to the package.
